@@ -7,15 +7,24 @@ import builtins
 
 def downloadImageFromUrl(url, path):
     if not url.startswith('http'):
-        return None
-    img_data = requests.get(url).content
-    fPath = path+'/'+str(uuid.uuid1())+'.jpg'
-    with open(fPath, 'wb') as handler:
-        handler.write(img_data)
-    return fPath
+        return None, "Invalid URL"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        img_data = response.content
+        fPath = f"{path}/{uuid.uuid1()}.jpg"
+        with open(fPath, 'wb') as handler:
+            handler.write(img_data)
+        return fPath, "Download successful"
+    except requests.RequestException as e:
+        return None, str(e)
 
 def print(ftext, **args):
+    clean_ftext = re.sub('\33\[\d+m', ' ', ftext)
     if sys.stdout.isatty():
-        builtins.print (ftext, flush=True, **args)
+        builtins.print(ftext, flush=True, **args)
     else:
-        builtins.print(re.sub('\33\[\d+m',' ',ftext), flush=True, **args)
+        builtins.print(clean_ftext, flush=True, **args)
+
+# Precompile the regex for ANSI escape codes
+ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
